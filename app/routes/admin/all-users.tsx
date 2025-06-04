@@ -1,7 +1,15 @@
-import React from "react";
+import { Header } from "components";
 
 const AllUsers = () => {
-  return <div>Users Table</div>;
+  return (
+    <main className="dashboard wrapper">
+      <Header
+        title="All Users"
+        description="Manage all users and their permissions"
+      />
+      All Users Page Content
+    </main>
+  );
 };
 
 export default AllUsers;
