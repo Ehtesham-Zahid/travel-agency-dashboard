@@ -1,7 +1,14 @@
 import { ComboBoxComponent } from "@syncfusion/ej2-react-dropdowns";
 import { Header } from "components";
 import type { Route } from "./+types/create-trip";
-import type { Coordinate } from "@syncfusion/ej2-react-maps";
+import {
+  LayersDirective,
+  MapsComponent,
+  LayerDirective,
+  type Coordinate,
+} from "@syncfusion/ej2-react-maps";
+import { comboBoxItems, selectItems } from "~/constants";
+import { formatKey } from "lib/utils";
 
 export const loader = async () => {
   const response = await fetch(
@@ -67,6 +74,66 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                 );
               }}
             />
+          </div>
+          <div>
+            <label htmlFor="duration">Duration</label>
+            <input
+              id="duration"
+              name="duration"
+              type="number"
+              placeholder="Enter a number of days"
+              className="form-input placeholder:text-gray-100"
+              onChange={(e) => {
+                handleChange("duration", Number(e.target.value));
+              }}
+            />
+          </div>
+
+          {selectItems.map((key) => (
+            <div key={key}>
+              <label htmlFor={key}>{formatKey(key)}</label>
+              <ComboBoxComponent
+                id={key}
+                dataSource={comboBoxItems[key].map((item) => ({
+                  text: item,
+                  value: item,
+                }))}
+                fields={{ text: "text", value: "value" }}
+                placeholder={`Select ${formatKey(key)}`}
+                change={(e: { value: string | undefined }) => {
+                  if (e.value) {
+                    handleChange(key, e.value);
+                  }
+                }}
+                allowFiltering={true}
+                filtering={(e) => {
+                  const query = e.text.toLowerCase();
+                  e.updateData(
+                    comboBoxItems[key]
+                      .filter((item) => item.toLowerCase().includes(query))
+                      .map((item) => ({
+                        text: item,
+                        value: item,
+                      }))
+                  );
+                }}
+                className="combo-box"
+              />
+            </div>
+          ))}
+
+          <div>
+            <MapsComponent>
+              <LayersDirective>
+                <LayerDirective
+                // shapeData={countries}
+                // shapeSettings={{
+                //   fill: "#000000",
+                //   color: "#000000",
+                // }}
+                />
+              </LayersDirective>
+            </MapsComponent>
           </div>
         </form>
       </section>
