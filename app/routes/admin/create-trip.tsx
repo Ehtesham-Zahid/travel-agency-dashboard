@@ -8,7 +8,12 @@ import {
   type Coordinate,
 } from "@syncfusion/ej2-react-maps";
 import { comboBoxItems, selectItems } from "~/constants";
-import { formatKey } from "lib/utils";
+import { cn, formatKey } from "lib/utils";
+import { useState } from "react";
+import { world_map } from "~/constants/world_map";
+import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
+import { account } from "~/appwrite/client";
+import type { C } from "node_modules/react-router/dist/development/route-data-WyrduLgj.mjs";
 
 export const loader = async () => {
   const response = await fetch(
@@ -20,23 +25,78 @@ export const loader = async () => {
     coordinates: country.latlng,
     value: country.name.common,
     openStreetMap: country.maps?.openStreetMap,
-  }));
+  })) as Country[];
 };
 
 const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const countries = loaderData as Country[];
+
+  const [formData, setFormData] = useState<TripFormData>({
+    country: countries[0]?.name || "",
+    travelStyle: "",
+    interest: "",
+    budget: "",
+    duration: 0,
+    groupType: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
+    setLoading(true);
+    if (
+      !formData.country ||
+      !formData.travelStyle ||
+      !formData.interest ||
+      !formData.budget ||
+      !formData.groupType
+    ) {
+      setError("Please provide values for all fields");
+      setLoading(false);
+      return;
+    }
+    if (formData.duration < 1 || formData.duration > 10) {
+      setError("Duration must be between 1 and 10 days");
+      setLoading(false);
+      return;
+    }
+
+    const user = await account.get();
+    if (!user.$id) {
+      console.error("User not Authenticated");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log("user", user);
+      console.log("formData", formData);
+    } catch (error) {
+      console.error("Error generating trip", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleChange = (key: keyof TripFormData, value: string | number) => {};
-
-  const countries = loaderData as Country[];
+  const handleChange = (key: keyof TripFormData, value: string | number) => {
+    setFormData({ ...formData, [key]: value });
+  };
 
   const countryData = countries.map((country) => ({
     text: country.name,
     value: country.value,
   }));
+
+  const mapData = [
+    {
+      country: formData.country,
+      color: "#EA382E",
+      coordinates:
+        countries.find((c: Country) => c.name === formData.country)
+          ?.coordinates || [],
+    },
+  ];
   return (
     <main className="flex flex-col gap-10 pb-20 wrapper">
       <Header
@@ -69,7 +129,7 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                     )
                     .map((country) => ({
                       text: country.name,
-                      value: country.name,
+                      value: country.value,
                     }))
                 );
               }}
@@ -126,15 +186,45 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
             <MapsComponent>
               <LayersDirective>
                 <LayerDirective
-                // shapeData={countries}
-                // shapeSettings={{
-                //   fill: "#000000",
-                //   color: "#000000",
-                // }}
+                  shapeData={world_map}
+                  dataSource={mapData}
+                  shapePropertyPath="name"
+                  shapeDataPath="country"
+                  shapeSettings={{
+                    colorValuePath: "color",
+                    fill: "#E5E5E5",
+                  }}
                 />
               </LayersDirective>
             </MapsComponent>
           </div>
+
+          <div className="bg-gray-200 h-px w-full" />
+
+          {error && (
+            <div className="error">
+              <p className="text-red-500">{error}</p>
+            </div>
+          )}
+
+          <footer className="px-6 w-full">
+            <ButtonComponent
+              type="submit"
+              className="button-class !h-12 !w-full"
+              disabled={loading}
+            >
+              <img
+                src={`/assets/icons/${loading ? "loader" : "magic-star"}.svg`}
+                alt="loading"
+                className={cn("size-5", {
+                  "animate-spin": loading,
+                })}
+              />
+              <span className="p-16-semibold text-white">
+                {loading ? "Generating..." : "Generate Trip"}
+              </span>
+            </ButtonComponent>
+          </footer>
         </form>
       </section>
     </main>
