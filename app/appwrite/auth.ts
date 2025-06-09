@@ -160,12 +160,6 @@ export const storeUserData = async () => {
     const user = await account.get();
     if (!user) throw new Error("User not found");
 
-    // Check if user already exists
-    const existingUser = await getExistingUser(user.$id);
-    if (existingUser) {
-      return existingUser;
-    }
-
     const { providerAccessToken } = (await account.getSession("current")) || {};
     const profilePicture = providerAccessToken
       ? await getGooglePicture(providerAccessToken)
@@ -181,14 +175,12 @@ export const storeUserData = async () => {
         name: user.name,
         imageUrl: profilePicture,
         joinedAt: new Date().toISOString(),
-        tripsCreated: 0, // Initialize tripsCreated count
       }
     );
 
-    return createdUser;
+    if (!createdUser.$id) redirect("/sign-in");
   } catch (error) {
     console.error("Error storing user data:", error);
-    return null;
   }
 };
 
@@ -213,7 +205,7 @@ export const loginWithGoogle = async () => {
     account.createOAuth2Session(
       OAuthProvider.Google,
       `${window.location.origin}/dashboard`,
-      `${window.location.origin}/sign-in?error=auth_failed`
+      `${window.location.origin}/404`
     );
   } catch (error) {
     console.error("Error during OAuth2 session creation:", error);
@@ -238,27 +230,14 @@ export const getUser = async () => {
       appwriteConfig.userCollectionId,
       [
         Query.equal("accountId", user.$id),
-        Query.select([
-          "name",
-          "email",
-          "imageUrl",
-          "joinedAt",
-          "accountId",
-          "tripsCreated",
-        ]),
+        Query.select(["name", "email", "imageUrl", "joinedAt", "accountId"]),
       ]
     );
 
-    if (documents.length === 0) {
-      // If user doesn't exist in database, create them
-      const newUser = await storeUserData();
-      return newUser || redirect("/sign-in");
-    }
-
-    return documents[0];
+    return documents.length > 0 ? documents[0] : redirect("/sign-in");
   } catch (error) {
     console.error("Error fetching user:", error);
-    return redirect("/sign-in");
+    return null;
   }
 };
 
