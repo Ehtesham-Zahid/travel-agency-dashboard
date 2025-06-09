@@ -2,7 +2,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { parseMarkdownToJson } from "lib/utils";
 import { appwriteConfig, database } from "~/appwrite/client";
-import { ID } from "appwrite";
+import { ID, Query } from "appwrite";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const {
@@ -90,6 +90,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         userId,
       }
     );
+
+    // Get the user document
+    const { documents: userDocs } = await database.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      [Query.equal("accountId", userId)]
+    );
+
+    if (userDocs.length > 0) {
+      const userDoc = userDocs[0];
+      // Increment tripsCreated count
+      await database.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        userDoc.$id,
+        {
+          tripsCreated: (userDoc.tripsCreated || 0) + 1,
+        }
+      );
+    }
 
     return data({ id: result.$id });
   } catch (error) {
