@@ -30,7 +30,7 @@ const TripCard = ({
         <h2>{name}</h2>
         <figure>
           <img
-            src="assets/icons/location-mark.svg"
+            src="/assets/icons/location-mark.svg"
             alt="location"
             className="size-4"
           />
